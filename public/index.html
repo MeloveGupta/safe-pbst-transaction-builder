@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coin Smith - PSBT Transaction Builder</title>
+  <meta name="description"
+    content="Build safe Bitcoin PSBT transactions with coin selection, fee estimation, and change management">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-card-hover: #1f2b3d;
+      --bg-input: #0d1321;
+      --border: #2a3548;
+      --border-focus: #f7931a;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #f7931a;
+      --accent-glow: rgba(247, 147, 26, 0.15);
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.1);
+      --yellow: #f59e0b;
+      --yellow-bg: rgba(245, 158, 11, 0.1);
+      --blue: #3b82f6;
+      --blue-bg: rgba(59, 130, 246, 0.1);
+      --purple: #a855f7;
+      --purple-bg: rgba(168, 85, 247, 0.1);
+      --cyan: #06b6d4;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+      --transition: all 0.2s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(247, 147, 26, 0.03) 0%, transparent 100%);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), #e8850f);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo h1 {
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo span {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--green-bg);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 20px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    /* Main layout */
+    main {
+      padding: 32px 0;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      min-height: calc(100vh - 90px);
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Input panel */
+    .input-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      border-color: rgba(247, 147, 26, 0.2);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 280px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 14px;
+      resize: vertical;
+      transition: var(--transition);
+      line-height: 1.5;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #e8850f);
+      color: #fff;
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(247, 147, 26, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .file-upload {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .file-upload:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .file-upload input {
+      display: none;
+    }
+
+    /* Results panel */
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .results-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 16px;
+    }
+
+    .results-empty .icon {
+      font-size: 48px;
+      opacity: 0.4;
+    }
+
+    .results-empty p {
+      max-width: 300px;
+      font-size: 14px;
+    }
+
+    .error-card {
+      background: var(--red-bg);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius);
+      padding: 20px;
+      color: var(--red);
+    }
+
+    .error-card h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-card p {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Warnings */
+    .warnings-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .warning-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .warning-badge.yellow {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .warning-badge.red {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .warning-badge.blue {
+      background: var(--blue-bg);
+      color: var(--blue);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    /* Transaction flow */
+    .tx-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .tx-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .tx-flow-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    .tx-section h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tx-section h3 .count {
+      background: var(--bg-secondary);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .utxo-item,
+    .output-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 8px;
+      transition: var(--transition);
+    }
+
+    .utxo-item:hover,
+    .output-item:hover {
+      border-color: rgba(247, 147, 26, 0.2);
+      background: var(--bg-card-hover);
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .item-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .item-type {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .type-p2wpkh {
+      background: var(--blue-bg);
+      color: var(--blue);
+    }
+
+    .type-p2tr {
+      background: var(--purple-bg);
+      color: var(--purple);
+    }
+
+    .type-p2pkh {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+    }
+
+    .type-p2sh-p2wpkh {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--cyan);
+    }
+
+    .type-p2sh {
+      background: var(--yellow-bg);
+      color: var(--yellow);
+    }
+
+    .type-p2wsh {
+      background: var(--purple-bg);
+      color: var(--purple);
+    }
+
+    .change-badge {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 8px;
+    }
+
+    .item-details {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      word-break: break-all;
+    }
+
+    .item-details .label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .tx-flow-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 80px;
+      color: var(--accent);
+      font-size: 28px;
+    }
+
+    /* RBF/Locktime info */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+
+    .info-card h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .info-value {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rbf-on {
+      color: var(--yellow);
+    }
+
+    .rbf-off {
+      color: var(--green);
+    }
+
+    /* PSBT display */
+    .psbt-display {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      word-break: break-all;
+      color: var(--text-secondary);
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .copy-btn {
+      font-size: 12px;
+      padding: 4px 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .copy-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Sample fixtures */
+    .sample-fixtures {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sample-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: var(--transition);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .sample-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container header-inner">
+      <div class="logo">
+        <div class="logo-icon">₿</div>
+        <div>
+          <h1>Coin Smith</h1>
+          <span>PSBT Transaction Builder</span>
+        </div>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        Ready
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside class="input-panel">
+      <div class="card">
+        <div class="panel-title">Fixture Input</div>
+        <div class="file-upload" id="file-upload">
+          <label>
+            📁 Drop fixture JSON here or click to browse
+            <input type="file" id="file-input" accept=".json">
+          </label>
+        </div>
+        <div style="margin: 10px 0; text-align: center; color: var(--text-muted); font-size: 12px;">— or paste JSON
+          below —</div>
+        <textarea id="fixture-input"
+          placeholder='{"network":"mainnet","utxos":[...],"payments":[...],"change":{...},"fee_rate_sat_vb":5}'></textarea>
+        <div class="btn-row" style="margin-top: 12px;">
+          <button class="btn btn-primary" id="build-btn" onclick="buildTransaction()">
+            ⚡ Build PSBT
+          </button>
+          <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-title">Sample Fixtures</div>
+        <div class="sample-fixtures" id="samples"></div>
+      </div>
+    </aside>
+
+    <section class="results-panel" id="results">
+      <div class="results-empty" id="empty-state">
+        <div class="icon">₿</div>
+        <h2>No Transaction Built</h2>
+        <p>Paste a fixture JSON or load a sample to build a PSBT and see the transaction breakdown.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SAMPLES = [
+      'basic_change_p2wpkh', 'send_all_dust_change', 'rbf_basic', 'rbf_send_all',
+      'anti_fee_sniping', 'mixed_input_types', 'multi_payment_change',
+      'locktime_block_height', 'locktime_boundary_block', 'locktime_boundary_timestamp',
+      'p2pkh_input_basic', 'p2sh_p2wpkh_input', 'rbf_with_locktime', 'rbf_false_explicit',
+      'rbf_multi_input'
+    ];
+
+    // Load samples list
+    const samplesDiv = document.getElementById('samples');
+    SAMPLES.forEach(name => {
+      const btn = document.createElement('button');
+      btn.className = 'sample-btn';
+      btn.textContent = name.replace(/_/g, ' ');
+      btn.onclick = () => loadSample(name);
+      samplesDiv.appendChild(btn);
+    });
+
+    async function loadSample(name) {
+      try {
+        const res = await fetch(`/fixtures/${name}.json`);
+        const json = await res.json();
+        document.getElementById('fixture-input').value = JSON.stringify(json, null, 2);
+      } catch (e) {
+        alert('Failed to load sample: ' + e.message);
+      }
+    }
+
+    // File upload
+    document.getElementById('file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('fixture-input').value = ev.target.result;
+      };
+      reader.readAsText(file);
+    });
+
+    // Drag and drop
+    const uploadArea = document.getElementById('file-upload');
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.style.borderColor = 'var(--accent)'; });
+    uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = ''; });
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '';
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('fixture-input').value = ev.target.result;
+      };
+      reader.readAsText(file);
+    });
+
+    function clearAll() {
+      document.getElementById('fixture-input').value = '';
+      document.getElementById('results').innerHTML = `
+        <div class="results-empty" id="empty-state">
+          <div class="icon">₿</div>
+          <h2>No Transaction Built</h2>
+          <p>Paste a fixture JSON or load a sample to build a PSBT and see the transaction breakdown.</p>
+        </div>
+      `;
+    }
+
+    function formatSats(sats) {
+      return sats.toLocaleString() + ' sats';
+    }
+
+    function formatBTC(sats) {
+      return (sats / 100_000_000).toFixed(8) + ' BTC';
+    }
+
+    function truncateHex(hex, len = 8) {
+      if (!hex || hex.length <= len * 2) return hex;
+      return hex.slice(0, len) + '…' + hex.slice(-len);
+    }
+
+    function getTypeClass(type) {
+      return 'type-' + (type || 'p2wpkh');
+    }
+
+    function getWarningStyle(code) {
+      if (code === 'HIGH_FEE') return 'red';
+      if (code === 'DUST_CHANGE') return 'red';
+      if (code === 'SEND_ALL') return 'yellow';
+      if (code === 'RBF_SIGNALING') return 'blue';
+      return 'yellow';
+    }
+
+    async function buildTransaction() {
+      const btn = document.getElementById('build-btn');
+      const rawInput = document.getElementById('fixture-input').value.trim();
+
+      if (!rawInput) {
+        alert('Please paste a fixture JSON or load a sample first.');
+        return;
+      }
+
+      let fixture;
+      try {
+        fixture = JSON.parse(rawInput);
+      } catch (e) {
+        showError('INVALID_JSON', 'Could not parse fixture JSON: ' + e.message);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Building…';
+
+      try {
+        const res = await fetch('/api/build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fixture),
+        });
+        const report = await res.json();
+
+        if (!report.ok) {
+          showError(report.error?.code || 'ERROR', report.error?.message || 'Unknown error');
+          return;
+        }
+
+        renderReport(report, fixture);
+      } catch (e) {
+        showError('NETWORK_ERROR', 'Request failed: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ Build PSBT';
+      }
+    }
+
+    function showError(code, message) {
+      document.getElementById('results').innerHTML = `
+        <div class="error-card">
+          <h3>⚠ Error: ${code}</h3>
+          <p>${message}</p>
+        </div>
+      `;
+    }
+
+    function renderReport(r, fixture) {
+      const inputTotal = r.selected_inputs.reduce((s, i) => s + i.value_sats, 0);
+      const outputTotal = r.outputs.reduce((s, o) => s + o.value_sats, 0);
+      const changeOutput = r.outputs.find(o => o.is_change);
+
+      let html = '';
+
+      // Stats grid
+      html += `<div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Input</div>
+          <div class="stat-value">${formatSats(inputTotal)}</div>
+          <div class="stat-sub">${formatBTC(inputTotal)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Output</div>
+          <div class="stat-value">${formatSats(outputTotal)}</div>
+          <div class="stat-sub">${formatBTC(outputTotal)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fee</div>
+          <div class="stat-value" style="color: var(--accent)">${formatSats(r.fee_sats)}</div>
+          <div class="stat-sub">${r.fee_rate_sat_vb.toFixed(2)} sat/vB · ${r.vbytes} vB</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Change</div>
+          <div class="stat-value" style="color: ${changeOutput ? 'var(--green)' : 'var(--text-muted)'}">
+            ${changeOutput ? formatSats(changeOutput.value_sats) : 'None (send-all)'}
+          </div>
+          <div class="stat-sub">${r.strategy} · ${r.network}</div>
+        </div>
+      </div>`;
+
+      // Warnings
+      if (r.warnings && r.warnings.length > 0) {
+        html += `<div class="warnings-bar">`;
+        r.warnings.forEach(w => {
+          html += `<div class="warning-badge ${getWarningStyle(w.code)}">⚠ ${w.code}</div>`;
+        });
+        html += `</div>`;
+      }
+
+      // Transaction flow
+      html += `<div class="card" style="padding: 24px">
+        <div class="tx-flow">
+          <div class="tx-section">
+            <h3>Inputs <span class="count">${r.selected_inputs.length}</span></h3>`;
+
+      r.selected_inputs.forEach((inp, i) => {
+        html += `<div class="utxo-item">
+          <div class="item-top">
+            <div class="item-value">${formatSats(inp.value_sats)}</div>
+            <span class="item-type ${getTypeClass(inp.script_type)}">${inp.script_type}</span>
+          </div>
+          <div class="item-details">
+            <span class="label">txid:</span> ${truncateHex(inp.txid, 10)}:${inp.vout}
+          </div>
+        </div>`;
+      });
+
+      html += `</div>
+          <div class="tx-flow-arrow">→</div>
+          <div class="tx-section">
+            <h3>Outputs <span class="count">${r.outputs.length}</span></h3>`;
+
+      r.outputs.forEach((out, i) => {
+        html += `<div class="output-item">
+          <div class="item-top">
+            <div class="item-value">
+              ${formatSats(out.value_sats)}
+              ${out.is_change ? '<span class="change-badge">Change</span>' : ''}
+            </div>
+            <span class="item-type ${getTypeClass(out.script_type)}">${out.script_type}</span>
+          </div>
+          <div class="item-details">
+            <span class="label">n:</span> ${out.n}${out.address ? ' · ' + truncateHex(out.address, 12) : ''}
+          </div>
+        </div>`;
+      });
+
+      html += `</div></div></div>`;
+
+      // RBF & Locktime info
+      html += `<div class="info-grid">
+        <div class="info-card">
+          <h4>RBF Signaling</h4>
+          <div class="info-value ${r.rbf_signaling ? 'rbf-on' : 'rbf-off'}">
+            ${r.rbf_signaling ? '🔄 Enabled' : '🔒 Disabled'}
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            ${r.rbf_signaling ? 'Transaction can be replaced with higher fee (BIP-125)' : 'Transaction is final - cannot be fee-bumped'}
+          </div>
+        </div>
+        <div class="info-card">
+          <h4>Locktime</h4>
+          <div class="info-value">
+            ${r.locktime === 0 ? '🔓 None' : (r.locktime_type === 'block_height' ? '⛓ Block ' + r.locktime.toLocaleString() : '🕐 ' + new Date(r.locktime * 1000).toISOString())}
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            Type: ${r.locktime_type}${r.locktime > 0 ? ' - tx not valid until this point' : ''}
+          </div>
+        </div>
+      </div>`;
+
+      // PSBT
+      html += `<div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div class="section-title" style="margin: 0">📦 PSBT (Base64)</div>
+          <button class="copy-btn" onclick="copyPsbt()">📋 Copy</button>
+        </div>
+        <div class="psbt-display" id="psbt-display">${r.psbt_base64}</div>
+      </div>`;
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    function copyPsbt() {
+      const text = document.getElementById('psbt-display').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => btn.textContent = '📋 Copy', 1500);
+      });
+    }
+  </script>
+</body>
+
+</html>
