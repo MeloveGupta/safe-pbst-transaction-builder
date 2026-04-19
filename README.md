@@ -1,6 +1,6 @@
 # Safe PSBT Transaction Builder
 
-A **Bitcoin PSBT (BIP-174) transaction builder** with coin selection, fee estimation, RBF signaling, locktime support, and an interactive web UI — built in Node.js with `bitcoinjs-lib`.
+A **Bitcoin PSBT (BIP-174) transaction builder** with coin selection, fee estimation, RBF signaling, locktime support, and an interactive web UI - built in Node.js with `bitcoinjs-lib`.
 
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-PSBT%20BIP--174-f7931a?logo=bitcoin&logoColor=white)
@@ -10,15 +10,15 @@ A **Bitcoin PSBT (BIP-174) transaction builder** with coin selection, fee estima
 
 ## Features
 
-- **Greedy coin selection** — largest-first UTXO selection with configurable `max_inputs` policy
-- **Iterative fee/change convergence** — handles edge cases where adding/removing change alters tx size and required fee
-- **Full RBF/locktime matrix** — correct `nSequence` and `nLockTime` per BIP-125 and anti-fee-sniping rules
-- **Multi-script support** — P2WPKH, P2TR, P2PKH, P2SH-P2WPKH, P2SH, P2WSH
-- **Dust protection** — prevents creation of uneconomical outputs (< 546 sats)
-- **Safety warnings** — `HIGH_FEE`, `DUST_CHANGE`, `SEND_ALL`, `RBF_SIGNALING`
-- **Valid BIP-174 PSBT** — base64-encoded with witness UTXO metadata
-- **Web UI** — dark-themed transaction visualizer with drag-and-drop fixture loading
-- **CLI interface** — batch-process fixture files with JSON report output
+- **Greedy coin selection** - largest-first UTXO selection with configurable `max_inputs` policy
+- **Iterative fee/change convergence** - handles edge cases where adding/removing change alters tx size and required fee
+- **Full RBF/locktime matrix** - correct `nSequence` and `nLockTime` per BIP-125 and anti-fee-sniping rules
+- **Multi-script support** - P2WPKH, P2TR, P2PKH, P2SH-P2WPKH, P2SH, P2WSH
+- **Dust protection** - prevents creation of uneconomical outputs (< 546 sats)
+- **Safety warnings** - `HIGH_FEE`, `DUST_CHANGE`, `SEND_ALL`, `RBF_SIGNALING`
+- **Valid BIP-174 PSBT** - base64-encoded with witness UTXO metadata
+- **Web UI** - dark-themed transaction visualizer with drag-and-drop fixture loading
+- **CLI interface** - batch-process fixture files with JSON report output
 
 ---
 
@@ -163,10 +163,10 @@ The builder implements the full BIP-125 interaction matrix:
 
 | RBF | Locktime | Current Height | nSequence | nLockTime |
 |-----|----------|----------------|-----------|-----------|
-| off | absent | — | `0xFFFFFFFF` | `0` |
-| off | present | — | `0xFFFFFFFE` | locktime |
+| off | absent | - | `0xFFFFFFFF` | `0` |
+| off | present | - | `0xFFFFFFFE` | locktime |
 | on | absent | present | `0xFFFFFFFD` | current_height |
-| on | present | — | `0xFFFFFFFD` | locktime |
+| on | present | - | `0xFFFFFFFD` | locktime |
 | on | absent | absent | `0xFFFFFFFD` | `0` |
 
 ---
@@ -196,9 +196,3 @@ Runs 15+ unit tests covering coin selection, fee/change edge cases, and PSBT str
 - **Bitcoin:** [bitcoinjs-lib](https://github.com/bitcoinjs/bitcoinjs-lib) v7
 - **Server:** Express.js
 - **Frontend:** Vanilla HTML/CSS/JS with Inter + JetBrains Mono fonts
-
----
-
-## License
-
-MIT
