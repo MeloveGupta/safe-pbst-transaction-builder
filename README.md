@@ -2,10 +2,6 @@
 
 A **Bitcoin PSBT (BIP-174) transaction builder** with coin selection, fee estimation, RBF signaling, locktime support, and an interactive web UI - built in Node.js with `bitcoinjs-lib`.
 
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)
-![Bitcoin](https://img.shields.io/badge/Bitcoin-PSBT%20BIP--174-f7931a?logo=bitcoin&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
-
 ---
 
 ## Features
